@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { ChevronRight, CheckCircle2, Circle, ArrowLeft, RotateCcw, Brain, Award, Zap, AlertCircle } from "lucide-react";
 import { conceptQuestions } from "../lib/questions";
+import { isCorrect, toggleAnswer } from "../lib/quiz";
 import type { Domain, Mastered, PreppedQuestion } from "../types";
 
 type LearnModeProps = {
@@ -38,24 +39,14 @@ export function LearnMode({ domain, mastered, onMaster, onResult, onExit }: Lear
 
   const toggle = (qid: string, oi: number, type: "single" | "multi") => {
     if (graded) return;
-    setAnswers((prev) => {
-      const set = new Set<number>(prev[qid] || []);
-      if (type === "single") { set.clear(); set.add(oi); } else { set.has(oi) ? set.delete(oi) : set.add(oi); }
-      return { ...prev, [qid]: set };
-    });
+    setAnswers((prev) => toggleAnswer(prev, qid, oi, type));
   };
 
-  const qCorrect = (q: PreppedQuestion): boolean => {
-    const sel = answers[q.id] || new Set<number>();
-    const ci = q.options.map((o, i) => (o.correct ? i : -1)).filter((i) => i >= 0);
-    return sel.size === ci.length && ci.every((i) => sel.has(i));
-  };
-
-  const allRight = Array.isArray(questions) && questions.length > 0 && questions.every(qCorrect);
+  const allRight = Array.isArray(questions) && questions.length > 0 && questions.every((q) => isCorrect(q, answers));
 
   const gradeNow = () => {
     setGraded(true);
-    if (questions) onResult(questions.filter(qCorrect), questions.filter((q) => !qCorrect(q)));
+    if (questions) onResult(questions.filter((q) => isCorrect(q, answers)), questions.filter((q) => !isCorrect(q, answers)));
   };
 
   const markMastered = () => { onMaster(concept.name); setIdx(idx + 1); resetConcept(); };

@@ -6,7 +6,7 @@
 // Stateless — receives progress values and navigation callbacks as props.
 // ============================================================
 
-import { Terminal, BookOpen, Zap, FileText, Repeat } from "lucide-react";
+import { Terminal, BookOpen, Zap, FileText, Repeat, Target } from "lucide-react";
 import { Cursor } from "./atoms";
 import { ProgressPanel } from "./ProgressPanel";
 import { BANK, BANK_TOTAL } from "../data/bank";
@@ -18,18 +18,19 @@ type HomeProps = {
   stats: Stats;
   masteredCount: number;
   missedCount: number;
-  lastMock: MockEntry | undefined;
+  mockHistory: MockEntry[];
   onReset: () => void;
   // navigation
   onLearn: () => void;
   onPractice: () => void;
   onMock: () => void;
   onReviewMissed: () => void;
+  onDrillWeakest: () => void;
 };
 
 export function Home({
-  hasProgress, stats, masteredCount, missedCount, lastMock, onReset,
-  onLearn, onPractice, onMock, onReviewMissed,
+  hasProgress, stats, masteredCount, missedCount, mockHistory, onReset,
+  onLearn, onPractice, onMock, onReviewMissed, onDrillWeakest,
 }: HomeProps) {
   return (
     <div className="space-y-6">
@@ -44,7 +45,7 @@ export function Home({
           stats={stats}
           masteredCount={masteredCount}
           missedCount={missedCount}
-          lastMock={lastMock}
+          mockHistory={mockHistory}
           onReset={onReset}
         />
       )}
@@ -79,6 +80,15 @@ export function Home({
             <div>
               <div className="text-neutral-50 font-medium text-sm group-hover:text-red-300">Review missed ({missedCount})</div>
               <p className="text-neutral-400 text-xs mt-0.5">Spaced repetition — drill what you got wrong. Get one right and it leaves the pile.</p>
+            </div>
+          </button>
+        )}
+        {Object.keys(stats).length > 0 && (
+          <button onClick={onDrillWeakest} className="text-left rounded-lg border border-orange-500/30 bg-orange-500/5 p-4 hover:border-orange-500/50 group flex items-center gap-3">
+            <Target className="text-orange-400" size={18} />
+            <div>
+              <div className="text-neutral-50 font-medium text-sm group-hover:text-orange-300">Drill weakest domains</div>
+              <p className="text-neutral-400 text-xs mt-0.5">15 questions weighted toward your lowest-accuracy domains.</p>
             </div>
           </button>
         )}

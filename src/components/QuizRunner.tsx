@@ -8,23 +8,33 @@
 // ============================================================
 
 import { useState, useEffect } from "react";
-import { Award, Clock, CheckCircle2, AlertCircle, ArrowLeft } from "lucide-react";
-import type { PreppedQuestion, Summary } from "../types";
+import { Award, Clock, CheckCircle2, AlertCircle, ArrowLeft, Bookmark } from "lucide-react";
+import { isCorrect, toggleAnswer } from "../lib/quiz";
+import type { PreppedQuestion, Summary, Flagged } from "../types";
 
 type QuizRunnerProps = {
   questions: PreppedQuestion[];
   timed?: boolean;
   timeLimitSec?: number;
   scaled?: boolean;
+  flagged?: Flagged;
+  onToggleFlag?: (key: string) => void;
   onExit: () => void;
   onFinish?: (correct: PreppedQuestion[], wrong: PreppedQuestion[], summary: Summary) => void;
 };
 
-export function QuizRunner({ questions, timed = false, timeLimitSec = 0, scaled = false, onExit, onFinish }: QuizRunnerProps) {
+export function QuizRunner({ questions, timed = false, timeLimitSec = 0, scaled = false, flagged = {}, onToggleFlag, onExit, onFinish }: QuizRunnerProps) {
   const [answers, setAnswers] = useState<Record<string, Set<number>>>({});
   const [submitted, setSubmitted] = useState(false);
   const [remaining, setRemaining] = useState(timeLimitSec);
   const [cur, setCur] = useState(0);
+
+  const toggle = (qid: string, oi: number, type: "single" | "multi") => {
+    if (submitted) return;
+    setAnswers((prev) => toggleAnswer(prev, qid, oi, type));
+  };
+
+  const handleSubmit = () => setSubmitted(true);
 
   useEffect(() => {
     if (!timed || submitted) return;
@@ -33,46 +43,34 @@ export function QuizRunner({ questions, timed = false, timeLimitSec = 0, scaled 
     return () => clearTimeout(t);
   }, [timed, remaining, submitted]);
 
-  const isCorrect = (q: PreppedQuestion): boolean => {
-    const sel = answers[q.id] || new Set<number>();
-    const ci = q.options.map((o, i) => (o.correct ? i : -1)).filter((i) => i >= 0);
-    return sel.size === ci.length && ci.every((i) => sel.has(i));
-  };
-
+  // Fires once when submitted. answers are frozen at this point — toggle blocks
+  // further updates once submitted is true — so the closure captures their final state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (!submitted || !onFinish) return;
-    const c = questions.filter(isCorrect);
-    const w = questions.filter((q) => !isCorrect(q));
-    const p = Math.round((c.length / questions.length) * 100);
-    onFinish(c, w, { total: questions.length, correct: c.length, pct: p, scaled: Math.round(100 + (p / 100) * 900) });
+    if (!submitted) return;
+    const correct = questions.filter((q) => isCorrect(q, answers));
+    const wrong = questions.filter((q) => !isCorrect(q, answers));
+    const p = Math.round((correct.length / questions.length) * 100);
+    onFinish?.(correct, wrong, { total: questions.length, correct: correct.length, pct: p, scaled: Math.round(100 + (p / 100) * 900) });
   }, [submitted]);
-
-  const toggle = (qid: string, oi: number, type: "single" | "multi") => {
-    if (submitted) return;
-    setAnswers((prev) => {
-      const set = new Set<number>(prev[qid] || []);
-      if (type === "single") { set.clear(); set.add(oi); } else { set.has(oi) ? set.delete(oi) : set.add(oi); }
-      return { ...prev, [qid]: set };
-    });
-  };
-
-  const correctCount = questions.filter(isCorrect).length;
-  const pct = Math.round((correctCount / questions.length) * 100);
-  const scaledScore = Math.round(100 + (pct / 100) * 900);
-
-  const byDomain: Record<string, { c: number; t: number }> = {};
-  questions.forEach((q) => {
-    const d = q.domain || "—";
-    byDomain[d] = byDomain[d] || { c: 0, t: 0 };
-    byDomain[d].t++;
-    if (isCorrect(q)) byDomain[d].c++;
-  });
 
   const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
   const ss = String(remaining % 60).padStart(2, "0");
 
   // ---------- results ----------
   if (submitted) {
+    const correctCount = questions.filter((q) => isCorrect(q, answers)).length;
+    const pct = Math.round((correctCount / questions.length) * 100);
+    const scaledScore = Math.round(100 + (pct / 100) * 900);
+
+    const byDomain: Record<string, { c: number; t: number }> = {};
+    questions.forEach((q) => {
+      const d = q.domain || "—";
+      byDomain[d] = byDomain[d] || { c: 0, t: 0 };
+      byDomain[d].t++;
+      if (isCorrect(q, answers)) byDomain[d].c++;
+    });
+
     return (
       <div className="space-y-5">
         <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-5">
@@ -102,12 +100,13 @@ export function QuizRunner({ questions, timed = false, timeLimitSec = 0, scaled 
         <div className="space-y-4">
           {questions.map((q, qi) => {
             const sel = answers[q.id] || new Set<number>();
-            const ok = isCorrect(q);
+            const ok = isCorrect(q, answers);
             return (
               <div key={q.id} className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
                 <div className="flex items-start gap-2 mb-3">
                   {ok ? <CheckCircle2 size={16} className="text-green-400 mt-0.5 shrink-0" /> : <AlertCircle size={16} className="text-red-400 mt-0.5 shrink-0" />}
-                  <div className="text-sm text-neutral-200">{qi + 1}. {q.question}</div>
+                  <div className="flex-1 text-sm text-neutral-200">{qi + 1}. {q.question}</div>
+                  {flagged[q.key] && <Bookmark size={14} className="text-amber-400 shrink-0 mt-0.5" fill="currentColor" />}
                 </div>
                 <div className="space-y-1.5 ml-6">
                   {q.options.map((o, oi) => {
@@ -143,10 +142,28 @@ export function QuizRunner({ questions, timed = false, timeLimitSec = 0, scaled 
       </div>
       <div className="h-1 bg-neutral-800 rounded"><div className="h-full bg-amber-500 rounded transition-all" style={{ width: `${((cur + 1) / questions.length) * 100}%` }} /></div>
 
+      {q.ctx && (
+        <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-xs text-neutral-300 font-mono leading-relaxed">
+          <span className="text-blue-400 mr-2">SCENARIO</span>{q.ctx}
+        </div>
+      )}
+
       <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-5">
-        <div className="flex items-center gap-2 mb-3">
-          {q.domain && <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-800 text-neutral-400">{q.domain}</span>}
-          <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${q.type === "multi" ? "bg-amber-500/15 text-amber-400" : "bg-neutral-800 text-neutral-500"}`}>{q.type === "multi" ? "MULTI-SELECT" : "SINGLE"}</span>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            {q.domain && <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-800 text-neutral-400">{q.domain}</span>}
+            <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${q.type === "multi" ? "bg-amber-500/15 text-amber-400" : "bg-neutral-800 text-neutral-500"}`}>{q.type === "multi" ? "MULTI-SELECT" : "SINGLE"}</span>
+          </div>
+          {onToggleFlag && (
+            <button
+              onClick={() => onToggleFlag(q.key)}
+              aria-label={flagged[q.key] ? "Remove flag" : "Flag for review"}
+              title={flagged[q.key] ? "Remove flag" : "Flag for review"}
+              className={`p-1 rounded transition-colors ${flagged[q.key] ? "text-amber-400" : "text-neutral-600 hover:text-amber-400"}`}
+            >
+              <Bookmark size={15} fill={flagged[q.key] ? "currentColor" : "none"} />
+            </button>
+          )}
         </div>
         <div className="text-neutral-100 mb-4">{q.question}</div>
         <div className="space-y-2">
@@ -166,7 +183,7 @@ export function QuizRunner({ questions, timed = false, timeLimitSec = 0, scaled 
         {cur < questions.length - 1 ? (
           <button onClick={() => setCur((c) => c + 1)} className="font-mono text-sm px-4 py-2 rounded bg-neutral-800 text-neutral-100 hover:bg-neutral-700">next →</button>
         ) : (
-          <button onClick={() => setSubmitted(true)} className="font-mono text-sm px-4 py-2 rounded bg-amber-500 text-neutral-950 font-bold hover:bg-amber-400">submit</button>
+          <button onClick={handleSubmit} className="font-mono text-sm px-4 py-2 rounded bg-amber-500 text-neutral-950 font-bold hover:bg-amber-400">submit</button>
         )}
       </div>
       <button onClick={onExit} className="font-mono text-xs text-neutral-600 hover:text-neutral-400">✕ abort</button>

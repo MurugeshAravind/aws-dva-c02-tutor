@@ -7,7 +7,7 @@
 // ============================================================
 
 import { BANK } from "../data/bank";
-import type { RawQuestion, PreppedQuestion, Option } from "../types";
+import type { RawQuestion, PreppedQuestion, Option, Stats } from "../types";
 
 /** Fisher–Yates shuffle. Returns a new array; does not mutate the input. */
 export function shuffle<T>(arr: T[]): T[] {
@@ -38,6 +38,7 @@ export function prep(raw: RawQuestion, code: string, concept: string): PreppedQu
     type: raw.t === "m" ? "multi" : "single",
     question: raw.q,
     options: shuffle(opts),
+    ctx: raw.ctx,
   };
 }
 
@@ -62,21 +63,47 @@ export function samplePractice(domainId: string, count: number): PreppedQuestion
 }
 
 /**
- * Domain-weighted sample for a mock exam (32/26/24/18%). Wraps around a
- * domain's pool if it's smaller than the slice it was allotted, so the
- * requested total is always met even on a small bank.
+ * Shared allocation engine for both mock and weakest-drill sampling.
+ * `weights` is a per-domain array (same order as BANK); values are relative
+ * — they are normalised internally. Wraps around a domain's pool if the pool
+ * is smaller than its allotted slice, so the requested total is always met.
  */
-export function sampleMock(total: number): PreppedQuestion[] {
+function weightedSample(total: number, weights: number[]): PreppedQuestion[] {
+  const sum = weights.reduce((a, b) => a + b, 0);
+  const all = allRaw();
   const out: PreppedQuestion[] = [];
   BANK.forEach((d, i) => {
-    const n = i === BANK.length - 1 ? total - out.length : Math.round((total * d.weight) / 100);
-    const pool = shuffle(allRaw().filter((x) => x.domainId === d.id));
+    const n = Math.max(
+      0,
+      i === BANK.length - 1
+        ? total - out.length
+        : Math.round((total * weights[i]) / sum)
+    );
+    const pool = shuffle(all.filter((x) => x.domainId === d.id));
     for (let k = 0; k < n; k++) {
       const x = pool[k % pool.length];
       if (x) out.push(prep(x.raw, x.code, x.concept));
     }
   });
   return shuffle(out);
+}
+
+/** Domain-weighted mock exam sample (weights come from the exam blueprint). */
+export function sampleMock(total: number): PreppedQuestion[] {
+  return weightedSample(total, BANK.map((d) => d.weight));
+}
+
+/**
+ * Weakness-weighted sample: domains where accuracy is lower get proportionally
+ * more questions. Untried domains default to 0.5 (neutral). Each domain's
+ * weight is floored at 0.05 so every domain stays represented.
+ */
+export function sampleWeakest(total: number, stats: Stats): PreppedQuestion[] {
+  const errorRate = (code: string): number => {
+    const s = stats[code];
+    return s && s.total > 0 ? 1 - s.correct / s.total : 0.5;
+  };
+  return weightedSample(total, BANK.map((d) => Math.max(0.05, errorRate(d.code))));
 }
 
 /** Questions for one concept (Learn-mode quizzing). */

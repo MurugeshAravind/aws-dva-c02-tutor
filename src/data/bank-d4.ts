@@ -1,0 +1,43 @@
+import type { Concept } from "../types";
+
+export const D4_CONCEPTS: Concept[] = [
+  {
+    name: "CloudWatch metrics, logs & alarms",
+    explanation: "CloudWatch is the observability backbone. Standard metrics appear automatically, but custom business metrics must be explicitly published by your app (PutMetricData). Alarms watch a metric against a threshold and trigger actions — commonly an SNS notification. Logs are separate from metrics; metric filters can derive metrics from log patterns.",
+    questions: [
+      { t: "s", q: "Your Lambda's custom business metric isn't showing in CloudWatch. Most likely cause?", o: ["The app must explicitly publish it as a custom metric", "CloudWatch only retains metrics for one hour", "Custom metrics require X-Ray", "Metrics need a VPC endpoint to appear"], c: [0], e: ["Custom metrics only exist if your code publishes them.", "Retention is far longer than an hour.", "X-Ray is tracing, not custom metrics.", "A VPC endpoint isn't required for metrics to appear."] },
+      { t: "s", q: "How do you get notified when an error metric crosses a threshold?", o: ["Create a CloudWatch alarm with an SNS action", "Enable CloudTrail data events", "Increase log retention", "Add a dead-letter queue"], c: [0], e: ["Alarm + SNS is the standard notification path.", "CloudTrail logs API calls, not metric thresholds.", "Retention doesn't notify you.", "A DLQ captures failed messages, not alerts."] },
+      { t: "s", q: "How can you create a metric from a pattern in your application logs?", o: ["A CloudWatch Logs metric filter", "An X-Ray segment", "A CloudTrail trail", "An SQS queue"], c: [0], e: ["Metric filters turn log patterns into CloudWatch metrics.", "X-Ray traces requests.", "CloudTrail logs API calls.", "SQS is a queue."] },
+      { t: "s", q: "A Lambda function's logs aren't appearing in CloudWatch Logs. Most likely cause?", o: ["The Lambda execution role lacks cloudwatch:PutLogEvents permission", "CloudWatch Logs is a paid add-on", "Lambda doesn't support CloudWatch Logs", "The function timeout is too short"], c: [0], e: ["Lambda writes logs via its execution role; missing log permissions silences output.", "CloudWatch Logs is included with Lambda; no extra opt-in needed.", "Lambda integrates natively with CloudWatch Logs.", "Timeout doesn't prevent logs already emitted from appearing."] },
+      { t: "s", q: "Which CloudWatch feature lets you run SQL queries against log data for analysis?", o: ["CloudWatch Logs Insights", "CloudWatch Metrics", "CloudWatch Alarms", "CloudWatch Events (EventBridge)"], c: [0], e: ["Logs Insights provides a query language for interactive log analysis.", "Metrics are numeric data points, not queryable log text.", "Alarms watch metrics, not log content.", "EventBridge routes events; it doesn't query logs."] },
+    ],
+  },
+  {
+    name: "X-Ray distributed tracing",
+    explanation: "X-Ray traces a request as it hops across services so you can pinpoint latency bottlenecks and errors. It builds a service map of dependencies and uses a sampling rate to keep overhead and cost low. It complements (does not replace) CloudWatch Logs, and your services need light instrumentation/SDK integration.",
+    questions: [
+      { t: "s", q: "What does AWS X-Ray primarily help with?", o: ["Tracing requests across distributed services to find latency bottlenecks", "Storing logs long-term", "Managing secrets", "Deploying applications"], c: [0], e: ["X-Ray is end-to-end request tracing.", "That's CloudWatch Logs / S3.", "That's Secrets Manager.", "That's CodeDeploy/CodePipeline."] },
+      { t: "m", q: "Which are true about X-Ray? (choose two)", o: ["It uses a sampling rate to limit overhead and cost", "It can show a service map of dependencies", "It fully replaces CloudWatch Logs", "It requires zero instrumentation", "It only works on EC2"], c: [0, 1], e: ["Sampling keeps cost/overhead manageable.", "The service map visualizes dependencies.", "It complements, not replaces, logs.", "Some instrumentation is needed.", "It works across many compute types."] },
+      { t: "s", q: "X-Ray shows high latency on calls to an external DynamoDB table. What X-Ray concept identifies the slow segment?", o: ["Subsegment for the DynamoDB call within the trace", "An alarm", "A log metric filter", "A CloudTrail event"], c: [0], e: ["Subsegments break a trace into individual downstream calls so you can pinpoint the slow one.", "Alarms are for threshold-based notifications, not trace analysis.", "Metric filters analyze log patterns.", "CloudTrail records API calls but doesn't do request tracing."] },
+    ],
+  },
+  {
+    name: "Caching & performance",
+    explanation: "Caching cuts latency and load, and the right cache depends on the source. DAX (DynamoDB Accelerator) gives DynamoDB microsecond read latency. ElastiCache (Redis/Memcached) caches general application data. CloudFront caches content at edge locations worldwide for low-latency global delivery.",
+    questions: [
+      { t: "s", q: "Which gives DynamoDB reads microsecond latency via an in-memory cache?", o: ["DAX (DynamoDB Accelerator)", "CloudFront", "S3 Transfer Acceleration", "ElastiCache for Memcached"], c: [0], e: ["DAX is purpose-built in-memory caching for DynamoDB.", "CloudFront caches edge content.", "Transfer Acceleration speeds S3 uploads.", "ElastiCache caches general data, not DynamoDB-native."] },
+      { t: "s", q: "To cache and accelerate global delivery of static content with low latency, use:", o: ["Amazon CloudFront", "Amazon DAX", "Amazon SQS", "AWS X-Ray"], c: [0], e: ["CloudFront caches content at edge locations worldwide.", "DAX caches DynamoDB reads.", "SQS is a queue.", "X-Ray is tracing."] },
+      { t: "s", q: "Which ElastiCache engine supports complex data structures like lists, sets, and sorted sets?", o: ["Redis", "Memcached", "DAX", "Cassandra"], c: [0], e: ["Redis supports rich data structures including sorted sets for leaderboards.", "Memcached is a simpler key-value cache with no complex types.", "DAX is for DynamoDB, not general application caching.", "Cassandra is not an ElastiCache engine."] },
+      { t: "m", q: "Which are characteristics of Amazon CloudFront? (choose two)", o: ["It caches content at edge locations close to users", "It can serve both static and dynamic content", "It only works with S3 origins", "It replaces Route 53 for DNS", "It cannot cache HTTPS content"], c: [0, 1], e: ["CloudFront has edge locations globally to reduce latency.", "CloudFront can cache and accelerate dynamic content too.", "CloudFront supports many origin types including EC2, ALB, and custom origins.", "CloudFront is a CDN, not a DNS service.", "CloudFront fully supports HTTPS."] },
+    ],
+  },
+  {
+    name: "CloudTrail & EventBridge",
+    explanation: "CloudTrail records every API call made in your account — who did what, when, from where. It's your audit log. EventBridge (formerly CloudWatch Events) is a serverless event bus that routes events from AWS services, custom apps, and SaaS tools to targets like Lambda, SQS, or SNS. CloudTrail feeds into EventBridge for near-real-time security alerting.",
+    questions: [
+      { t: "s", q: "Which service records every AWS API call for auditing and compliance?", o: ["AWS CloudTrail", "Amazon CloudWatch", "AWS Config", "AWS X-Ray"], c: [0], e: ["CloudTrail logs every API call across your account.", "CloudWatch collects metrics and logs from resources.", "Config tracks resource configuration changes.", "X-Ray traces application requests."] },
+      { t: "s", q: "You want to trigger a Lambda function automatically 5 minutes after every CodePipeline deployment. Which service routes this event?", o: ["Amazon EventBridge (CloudWatch Events)", "AWS CloudTrail", "Amazon SNS", "AWS Step Functions"], c: [0], e: ["EventBridge routes events from AWS services to Lambda on a schedule or event pattern.", "CloudTrail logs calls but doesn't route events to targets.", "SNS requires a source to publish; it doesn't auto-trigger on service events.", "Step Functions orchestrates workflows but doesn't auto-trigger on service events."] },
+      { t: "s", q: "A security team needs an alert whenever a root account login occurs. Best architecture?", o: ["CloudTrail → EventBridge rule on root login → SNS notification", "CloudWatch metric → alarm → Lambda", "X-Ray trace → annotation filter", "Config rule → Lambda"], c: [0], e: ["CloudTrail events flow into EventBridge; a rule on root login events triggers SNS.", "A CW metric can be derived but the event source is still CloudTrail.", "X-Ray doesn't detect IAM login events.", "Config tracks resource state, not authentication events."] },
+    ],
+  },
+];

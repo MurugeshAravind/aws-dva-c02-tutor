@@ -14,8 +14,8 @@ import { QuizRunner } from "./components/QuizRunner";
 import { LearnMode } from "./components/LearnMode";
 import { useProgress } from "./hooks/useProgress";
 import { BANK, TOPICS } from "./data/bank";
-import { samplePractice, sampleMock, shuffle } from "./lib/questions";
-import type { View, Domain, DomainWithTopics } from "./types";
+import { samplePractice, sampleMock, sampleWeakest, shuffle } from "./lib/questions";
+import type { View, Domain, DomainWithTopics, PreppedQuestion } from "./types";
 
 const DOMAINS: DomainWithTopics[] = BANK.map((d) => ({ ...d, topics: TOPICS[d.id] }));
 const MOCK_OPTIONS = [
@@ -30,6 +30,7 @@ export default function App() {
   const [pickedDomain, setPickedDomain] = useState<DomainWithTopics | null>(null);
   const [pCount, setPCount] = useState<number | null>(null);
   const [mockLen, setMockLen] = useState<number | null>(null);
+  const [activeQuestions, setActiveQuestions] = useState<PreppedQuestion[]>([]);
 
   const progress = useProgress();
   const reset = () => { setView("home"); setPickedDomain(null); setPCount(null); setMockLen(null); };
@@ -56,12 +57,19 @@ export default function App() {
             stats={progress.stats}
             masteredCount={progress.masteredCount}
             missedCount={progress.missedList.length}
-            lastMock={progress.lastMock}
+            mockHistory={progress.mockHistory}
             onReset={progress.resetAll}
             onLearn={() => setView("learn-pick")}
             onPractice={() => setView("practice-pick")}
             onMock={() => setView("mock-pick")}
-            onReviewMissed={() => setView("practice-missed")}
+            onReviewMissed={() => {
+              setActiveQuestions(progress.missedList.map((q) => ({ ...q, id: `r-${Math.random().toString(36).slice(2, 7)}`, options: shuffle(q.options) })));
+              setView("practice-missed");
+            }}
+            onDrillWeakest={() => {
+              setActiveQuestions(sampleWeakest(15, progress.stats));
+              setView("drill-weakest");
+            }}
           />
         )}
 
@@ -116,7 +124,7 @@ export default function App() {
             <Header>practice › {pickedDomain.name} › how many?</Header>
             <div className="flex gap-3">
               {PRACTICE_COUNTS.map((n) => (
-                <button key={n} onClick={() => { setPCount(n); setView("practice"); }} className="flex-1 rounded-lg border border-neutral-800 bg-neutral-900/40 py-5 hover:border-amber-500/50 font-mono">
+                <button key={n} onClick={() => { setPCount(n); setActiveQuestions(samplePractice(pickedDomain.id, n)); setView("practice"); }} className="flex-1 rounded-lg border border-neutral-800 bg-neutral-900/40 py-5 hover:border-amber-500/50 font-mono">
                   <div className="text-2xl text-neutral-50">{n}</div><div className="text-[11px] text-neutral-500">questions</div>
                 </button>
               ))}
@@ -125,7 +133,9 @@ export default function App() {
         )}
         {view === "practice" && pickedDomain && pCount && (
           <QuizRunner
-            questions={samplePractice(pickedDomain.id, pCount)}
+            questions={activeQuestions}
+            flagged={progress.flagged}
+            onToggleFlag={progress.toggleFlag}
             onExit={reset}
             onFinish={(c, w) => { progress.recordMissed(w); progress.updateStats(c, w); }}
           />
@@ -134,9 +144,22 @@ export default function App() {
         {/* ---------- REVIEW MISSED ---------- */}
         {view === "practice-missed" && (
           <QuizRunner
-            questions={progress.missedList.map((q) => ({ ...q, id: `r-${Math.random().toString(36).slice(2, 7)}`, options: shuffle(q.options) }))}
+            questions={activeQuestions}
+            flagged={progress.flagged}
+            onToggleFlag={progress.toggleFlag}
             onExit={reset}
             onFinish={(c, w) => { progress.graduateMissed(c); progress.updateStats(c, w); }}
+          />
+        )}
+
+        {/* ---------- DRILL WEAKEST ---------- */}
+        {view === "drill-weakest" && (
+          <QuizRunner
+            questions={activeQuestions}
+            flagged={progress.flagged}
+            onToggleFlag={progress.toggleFlag}
+            onExit={reset}
+            onFinish={(c, w) => { progress.recordMissed(w); progress.updateStats(c, w); }}
           />
         )}
 
@@ -147,7 +170,7 @@ export default function App() {
             <Header>mock exam › select length</Header>
             <div className="grid sm:grid-cols-3 gap-3">
               {MOCK_OPTIONS.map((o) => (
-                <button key={o.n} onClick={() => { setMockLen(o.n); setView("mock"); }} className="rounded-lg border border-neutral-800 bg-neutral-900/40 py-5 hover:border-amber-500/50 font-mono">
+                <button key={o.n} onClick={() => { setMockLen(o.n); setActiveQuestions(sampleMock(o.n)); setView("mock"); }} className="rounded-lg border border-neutral-800 bg-neutral-900/40 py-5 hover:border-amber-500/50 font-mono">
                   <div className="text-2xl text-neutral-50">{o.n}</div><div className="text-xs text-amber-400">{o.l}</div>
                   <div className="text-[11px] text-neutral-500 mt-0.5 flex items-center justify-center gap-1"><Clock size={11} />{o.t}</div>
                 </button>
@@ -156,19 +179,18 @@ export default function App() {
             <p className="text-[11px] font-mono text-neutral-600">Domain-weighted 32/26/24/18%. Drawn from your bank — free and instant.</p>
           </div>
         )}
-        {view === "mock" && mockLen && (() => {
-          const qs = sampleMock(mockLen);
-          return (
-            <QuizRunner
-              questions={qs}
-              timed
-              timeLimitSec={Math.round((130 * 60 * qs.length) / 65)}
-              scaled
-              onExit={reset}
-              onFinish={(c, w, s) => { progress.recordMissed(w); progress.updateStats(c, w); progress.pushMock({ ts: Date.now(), len: s.total, scaled: s.scaled, pct: s.pct }); }}
-            />
-          );
-        })()}
+        {view === "mock" && mockLen && (
+          <QuizRunner
+            questions={activeQuestions}
+            timed
+            timeLimitSec={Math.round((130 * 60 * activeQuestions.length) / 65)}
+            scaled
+            flagged={progress.flagged}
+            onToggleFlag={progress.toggleFlag}
+            onExit={reset}
+            onFinish={(c, w, s) => { progress.recordMissed(w); progress.updateStats(c, w); progress.pushMock({ ts: Date.now(), len: s.total, scaled: s.scaled, pct: s.pct }); }}
+          />
+        )}
       </div>
     </div>
   );

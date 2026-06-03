@@ -12,11 +12,35 @@ type ProgressPanelProps = {
   stats: Stats;
   masteredCount: number;
   missedCount: number;
-  lastMock: MockEntry | undefined;
+  mockHistory: MockEntry[];
   onReset: () => void;
 };
 
-export function ProgressPanel({ stats, masteredCount, missedCount, lastMock, onReset }: ProgressPanelProps) {
+function MockSparkline({ history }: { history: MockEntry[] }) {
+  if (history.length < 2) return null;
+  const pts = [...history].reverse(); // oldest first
+  const VW = 180, VH = 36, PAD = 4;
+  const xStep = (VW - PAD * 2) / (pts.length - 1);
+  const yScale = (v: number) => PAD + ((1000 - v) / 900) * (VH - PAD * 2);
+  const passY = yScale(720);
+  const polyline = pts.map((m, i) => `${PAD + i * xStep},${yScale(m.scaled)}`).join(" ");
+  const lastPt = pts[pts.length - 1];
+  const lastX = PAD + (pts.length - 1) * xStep;
+  const lastY = yScale(lastPt.scaled);
+  const pass = lastPt.scaled >= 720;
+
+  return (
+    <svg viewBox={`0 0 ${VW} ${VH}`} width="100%" className="overflow-visible" style={{ maxWidth: VW }}>
+      <line x1={PAD} y1={passY} x2={VW - PAD} y2={passY} stroke="#6b7280" strokeWidth="1" strokeDasharray="3 3" />
+      <polyline points={polyline} fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeLinejoin="round" />
+      <circle cx={lastX} cy={lastY} r="3" fill={pass ? "#4ade80" : "#f59e0b"} />
+    </svg>
+  );
+}
+
+export function ProgressPanel({ stats, masteredCount, missedCount, mockHistory, onReset }: ProgressPanelProps) {
+  const lastMock = mockHistory[0];
+
   return (
     <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
       <div className="flex items-center justify-between mb-3">
@@ -47,13 +71,20 @@ export function ProgressPanel({ stats, masteredCount, missedCount, lastMock, onR
         })}
       </div>
 
-      <div className="flex flex-wrap gap-x-6 gap-y-1 text-[11px] font-mono text-neutral-500 pt-2 border-t border-neutral-800">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-[11px] font-mono text-neutral-500 pt-2 border-t border-neutral-800">
         <span>concepts mastered: <span className="text-green-400">{masteredCount}/{TOTAL_CONCEPTS}</span></span>
         <span>to review: <span className="text-red-400">{missedCount}</span></span>
         {lastMock && (
           <span>
             last mock: <span className={lastMock.scaled >= 720 ? "text-green-400" : "text-amber-400"}>{lastMock.scaled}</span> ({lastMock.pct}%)
           </span>
+        )}
+        {mockHistory.length >= 2 && (
+          <div className="flex items-center gap-2 mt-1 w-full">
+            <span className="text-neutral-600">trend</span>
+            <MockSparkline history={mockHistory} />
+            <span className="text-neutral-600 text-[10px]">pass · 720</span>
+          </div>
         )}
       </div>
     </div>
