@@ -1,3 +1,5 @@
+import { SET3_D1_QUESTIONS } from "./mock-set-3";
+import { SET4_D1_QUESTIONS } from "./mock-set-4";
 import type { Concept } from "../types";
 
 export const D1_CONCEPTS: Concept[] = [
@@ -56,4 +58,14 @@ export const D1_CONCEPTS: Concept[] = [
       { t: "m", q: "Which are true about Kinesis Data Streams? (choose two)", o: ["Records are retained for 24 hours by default (up to 7 days)", "Multiple consumers can read the same shard independently", "Each shard provides 10 MB/s write throughput", "Firehose is a required component for Data Streams", "Records are deleted immediately after being read"], c: [0, 1], e: ["24 h default, up to 7 days with extended retention.", "Multiple consumers can independently read the same stream.", "Each shard provides 1 MB/s in, not 10.", "Firehose is a separate optional service.", "Records remain available until retention expires."] },
     ],
   },
+  {
+    name: "Mock Exam Set 3 Questions",
+    explanation: "Comprehensive practice questions from Tutorials Dojo Mock Set 3.",
+    questions: SET3_D1_QUESTIONS
+  },
+  {
+    name: "Mock Exam Set 4 Questions",
+    explanation: "Comprehensive practice questions from AWS Tutorials Dojo Mock Set 4.",
+    questions: SET4_D1_QUESTIONS
+  }
 ];

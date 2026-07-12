@@ -115,3 +115,10 @@ export function conceptQuestions(domainId: string, conceptName: string, count = 
     .slice(0, count)
     .map((q) => prep(q, d!.code, conceptName));
 }
+
+/** Get all questions for a static practice mock exam in their entirety. */
+export function getStaticMockSet(setId: number): PreppedQuestion[] {
+  const conceptName = setId === 3 ? "Mock Exam Set 3 Questions" : "Mock Exam Set 4 Questions";
+  const match = allRaw().filter((x) => x.concept === conceptName);
+  return shuffle(match).map((x) => prep(x.raw, x.code, x.concept));
+}

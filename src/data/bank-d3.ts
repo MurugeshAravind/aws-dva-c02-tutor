@@ -1,3 +1,5 @@
+import { SET3_D3_QUESTIONS } from "./mock-set-3";
+import { SET4_D3_QUESTIONS } from "./mock-set-4";
 import type { Concept } from "../types";
 
 export const D3_CONCEPTS: Concept[] = [
@@ -43,4 +45,14 @@ export const D3_CONCEPTS: Concept[] = [
       { t: "m", q: "Which Elastic Beanstalk deployment policies guarantee full capacity is maintained throughout the release? (choose two)", o: ["Immutable", "Rolling with additional batch", "Rolling", "All at once"], c: [0, 1], e: ["Immutable launches fresh instances before swapping, so old instances handle all traffic until the swap.", "Rolling with additional batch adds a new batch first, keeping full capacity available at all times.", "Rolling takes instances out of service in batches — capacity is temporarily reduced during the update.", "All at once takes down all instances simultaneously and has full downtime."] },
     ],
   },
+  {
+    name: "Mock Exam Set 3 Questions",
+    explanation: "Comprehensive practice questions from Tutorials Dojo Mock Set 3.",
+    questions: SET3_D3_QUESTIONS
+  },
+  {
+    name: "Mock Exam Set 4 Questions",
+    explanation: "Comprehensive practice questions from AWS Tutorials Dojo Mock Set 4.",
+    questions: SET4_D3_QUESTIONS
+  }
 ];

@@ -1,3 +1,5 @@
+import { SET3_D2_QUESTIONS } from "./mock-set-3";
+import { SET4_D2_QUESTIONS } from "./mock-set-4";
 import type { Concept } from "../types";
 
 export const D2_CONCEPTS: Concept[] = [
@@ -42,4 +44,14 @@ export const D2_CONCEPTS: Concept[] = [
       { t: "s", q: "Your Lambda needs a third-party API key at runtime without bundling it in code. Which approach is most operationally secure?", o: ["Retrieve from Secrets Manager at startup using the AWS SDK", "Pass via an environment variable set at deploy time", "Read from a public S3 bucket", "Hardcode in a config file"], c: [0], e: ["Secrets Manager keeps the key out of code and supports rotation.", "An env var at deploy time embeds the secret in the function config.", "A public S3 bucket exposes the key to anyone.", "Hardcoding is a security anti-pattern."] },
     ],
   },
+  {
+    name: "Mock Exam Set 3 Questions",
+    explanation: "Comprehensive practice questions from Tutorials Dojo Mock Set 3.",
+    questions: SET3_D2_QUESTIONS
+  },
+  {
+    name: "Mock Exam Set 4 Questions",
+    explanation: "Comprehensive practice questions from AWS Tutorials Dojo Mock Set 4.",
+    questions: SET4_D2_QUESTIONS
+  }
 ];

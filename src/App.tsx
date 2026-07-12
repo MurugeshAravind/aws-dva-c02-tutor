@@ -14,7 +14,7 @@ import { QuizRunner } from "./components/QuizRunner";
 import { LearnMode } from "./components/LearnMode";
 import { useProgress } from "./hooks/useProgress";
 import { BANK, TOPICS } from "./data/bank";
-import { samplePractice, sampleMock, sampleWeakest, shuffle } from "./lib/questions";
+import { samplePractice, sampleMock, sampleWeakest, shuffle, getStaticMockSet } from "./lib/questions";
 import type { View, Domain, DomainWithTopics, PreppedQuestion } from "./types";
 
 const DOMAINS: DomainWithTopics[] = BANK.map((d) => ({ ...d, topics: TOPICS[d.id] }));
@@ -170,13 +170,29 @@ export default function App() {
             <Header>mock exam › select length</Header>
             <div className="grid sm:grid-cols-3 gap-3">
               {MOCK_OPTIONS.map((o) => (
-                <button key={o.n} onClick={() => { setMockLen(o.n); setActiveQuestions(sampleMock(o.n)); setView("mock"); }} className="rounded-lg border border-neutral-800 bg-neutral-900/40 py-5 hover:border-amber-500/50 font-mono">
+                <button key={o.n} onClick={() => { setMockLen(o.n); setActiveQuestions(sampleMock(o.n)); setView("mock"); }} className="rounded-lg border border-neutral-800 bg-neutral-900/40 py-5 hover:border-amber-500/50 font-mono cursor-pointer">
                   <div className="text-2xl text-neutral-50">{o.n}</div><div className="text-xs text-amber-400">{o.l}</div>
                   <div className="text-[11px] text-neutral-500 mt-0.5 flex items-center justify-center gap-1"><Clock size={11} />{o.t}</div>
                 </button>
               ))}
             </div>
-            <p className="text-[11px] font-mono text-neutral-600">Domain-weighted 32/26/24/18%. Drawn from your bank — free and instant.</p>
+            <p className="text-[11px] font-mono text-neutral-600 mb-6">Domain-weighted 32/26/24/18%. Drawn from your bank — free and instant.</p>
+
+            <div className="pt-6 border-t border-neutral-850 space-y-3">
+              <Header>full-length mock sets</Header>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <button onClick={() => { setMockLen(65); setActiveQuestions(getStaticMockSet(3)); setView("mock"); }} className="text-left rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 hover:border-amber-500/50 hover:bg-neutral-900/80 group cursor-pointer transition-all duration-200">
+                  <div className="text-neutral-100 text-sm font-semibold mb-1 group-hover:text-amber-300">Mock Exam Set 3</div>
+                  <div className="text-xs text-neutral-400 mb-2">65 questions · Complete Tutorials Dojo Set</div>
+                  <div className="text-[10px] text-neutral-500 font-mono flex items-center gap-1"><Clock size={11} />130 mins limit</div>
+                </button>
+                <button onClick={() => { setMockLen(65); setActiveQuestions(getStaticMockSet(4)); setView("mock"); }} className="text-left rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 hover:border-amber-500/50 hover:bg-neutral-900/80 group cursor-pointer transition-all duration-200">
+                  <div className="text-neutral-100 text-sm font-semibold mb-1 group-hover:text-amber-300">Mock Exam Set 4</div>
+                  <div className="text-xs text-neutral-400 mb-2">65 questions · Complete AWS TD-Mock-4 Set</div>
+                  <div className="text-[10px] text-neutral-500 font-mono flex items-center gap-1"><Clock size={11} />130 mins limit</div>
+                </button>
+              </div>
+            </div>
           </div>
         )}
         {view === "mock" && mockLen && (

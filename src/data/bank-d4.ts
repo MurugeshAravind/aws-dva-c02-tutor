@@ -1,3 +1,5 @@
+import { SET3_D4_QUESTIONS } from "./mock-set-3";
+import { SET4_D4_QUESTIONS } from "./mock-set-4";
 import type { Concept } from "../types";
 
 export const D4_CONCEPTS: Concept[] = [
@@ -40,4 +42,14 @@ export const D4_CONCEPTS: Concept[] = [
       { t: "s", q: "A security team needs an alert whenever a root account login occurs. Best architecture?", o: ["CloudTrail → EventBridge rule on root login → SNS notification", "CloudWatch metric → alarm → Lambda", "X-Ray trace → annotation filter", "Config rule → Lambda"], c: [0], e: ["CloudTrail events flow into EventBridge; a rule on root login events triggers SNS.", "A CW metric can be derived but the event source is still CloudTrail.", "X-Ray doesn't detect IAM login events.", "Config tracks resource state, not authentication events."] },
     ],
   },
+  {
+    name: "Mock Exam Set 3 Questions",
+    explanation: "Comprehensive practice questions from Tutorials Dojo Mock Set 3.",
+    questions: SET3_D4_QUESTIONS
+  },
+  {
+    name: "Mock Exam Set 4 Questions",
+    explanation: "Comprehensive practice questions from AWS Tutorials Dojo Mock Set 4.",
+    questions: SET4_D4_QUESTIONS
+  }
 ];
